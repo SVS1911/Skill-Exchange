@@ -21,10 +21,10 @@ def add_review(
             "Booking not found"
         }, 404
 
-    if booking.status != "accepted":
+    if booking.status != "completed":
         return {
             "message":
-            "Booking not accepted"
+            "Course Completed Successfully. Please give the Rating and Transfer the Points...Thank You"
         }, 400
 
     existing_review = Review.query.filter_by(
@@ -46,6 +46,16 @@ def add_review(
             "review_text"
         )
     )
+    
+    if (
+        data["rating"] < 1
+        or
+        data["rating"] > 5
+    ):
+        return {
+            "message":
+            "Rating must be between 1 and 5"
+        }, 400
 
     db.session.add(review)
     db.session.commit()

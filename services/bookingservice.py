@@ -9,6 +9,35 @@ def create_booking(
     data
 ):
 
+    if learner_id == skill.user_id:
+        return {
+            "message":
+            "You cannot book your own skill"
+        }, 400
+    
+    availability = Availability.query.filter_by(
+    user_id=skill.user_id,
+    date=data["booking_date"]
+    ).first()
+
+    if not availability:
+        return {
+            "message":
+            "Teacher unavailable"
+        }, 400
+    
+    existing_booking = Booking.query.filter_by(
+    teacher_id=skill.user_id,
+    booking_date=data["booking_date"],
+    booking_time=data["booking_time"]
+    ).first()
+
+    if existing_booking:
+        return {
+        "message":
+        "Slot already booked"
+        }, 400
+    
     skill = Skill.query.get(
         data["skill_id"]
     )
@@ -90,6 +119,16 @@ def update_booking_status(
     booking.status = status
 
     # Transfer points only when completed
+    if (
+        status == "completed"
+        and booking.status
+        != "accepted"
+    ):
+        return {
+            "message":
+            "Booking must be accepted first"
+        }, 400
+        
     if status == "completed":
 
         learner = User.query.get(

@@ -15,7 +15,7 @@ class Skill(db.Model):
     user_id = db.Column(db.Integer,db.ForeignKey("users.id"),nullable=False)
     created_at = db.Column(db.DateTime,default=datetime.utcnow)
     
-    bookings=db.relationship("Booking", backref="Skill", lazy=True, cascade="all, delete")
+    bookings=db.relationship("Booking", backref="skill", lazy=True, cascade="all, delete")
     
 
     def __repr__(self):
