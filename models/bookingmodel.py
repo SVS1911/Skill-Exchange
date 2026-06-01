@@ -20,5 +20,12 @@ class Booking(db.Model):
     cascade="all, delete"
     )
     
+    messages = db.relationship(
+    "Message",
+    backref="booking",
+    lazy=True,
+    cascade="all, delete"
+    )
+    
     def __repr__(self):
         return f"<Booking {self.id}>"

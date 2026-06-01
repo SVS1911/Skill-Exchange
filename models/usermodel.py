@@ -23,20 +23,10 @@ class User(db.Model):
     availability = db.relationship("Availability",backref="owner",lazy=True,cascade="all, delete")
     bookings_as_learner=db.relationship("Booking",  foreign_keys="Booking.learner_id", lazy=True, cascade="all, delete")
     bookings_as_teacher=db.relationship("Booking",  foreign_keys="Booking.teacher_id", lazy=True, cascade="all, delete")
-    reviews_received = db.relationship(
-    "Review",
-    foreign_keys="Review.teacher_id",
-    lazy=True,
-    cascade="all, delete"
-    )
-
-    reviews_given = db.relationship(
-        "Review",
-        foreign_keys="Review.learner_id",
-        lazy=True,
-        cascade="all, delete"
-    )
-
+    reviews_received = db.relationship("Review",foreign_keys="Review.teacher_id",lazy=True,cascade="all, delete")
+    messages_sent = db.relationship("Message",foreign_keys="Message.sender_id",lazy=True,cascade="all, delete")
+    messages_received = db.relationship("Message",foreign_keys="Message.receiver_id",lazy=True,cascade="all, delete")
+    reviews_given = db.relationship("Review",foreign_keys="Review.learner_id",lazy=True,cascade="all, delete")
 
     def __repr__(self):
         return f"<User {self.name}>"

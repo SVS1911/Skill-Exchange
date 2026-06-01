@@ -5,7 +5,7 @@ from database.db import db
 def add_availability(user_id,data):
 
     slot = Availability(
-        day=data["day"],
+        date=data["date"],
         start_time=data["start_time"],
         end_time=data["end_time"],
         user_id=user_id
@@ -30,7 +30,7 @@ def get_my_availability(user_id):
 
         result.append({
             "id": slot.id,
-            "day": slot.day,
+            "day": slot.date,
             "start_time":slot.start_time,
             "end_time":slot.end_time
         })

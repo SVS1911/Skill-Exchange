@@ -22,13 +22,13 @@ def add_skill():
     )
 
 
-@skill_bp.route("/all",methods=["GET"])
+@skill_bp.route("/skills",methods=["GET"])
 def get_skills():
 
     return get_all_skills()
 
 
-@skill_bp.route("/mine",methods=["GET"])
+@skill_bp.route("/my-skills",methods=["GET"])
 @jwt_required()
 def my_skills():
 

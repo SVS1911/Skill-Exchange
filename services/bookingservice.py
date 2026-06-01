@@ -1,5 +1,6 @@
 from models.bookingmodel import Booking
 from models.skillmodel import Skill
+from models.availabilitymodel import Availability
 from models.usermodel import User
 from database.db import db
 
@@ -8,7 +9,7 @@ def create_booking(
     learner_id,
     data
 ):
-
+    skill = Skill.query.get(data["skill_id"])
     if learner_id == skill.user_id:
         return {
             "message":

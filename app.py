@@ -1,6 +1,7 @@
 from flask import Flask , jsonify
 from flask_jwt_extended import JWTManager
 from datetime import timedelta
+from flasgger import Swagger
 
 from config import Config
 from database.db import db
@@ -10,6 +11,7 @@ from models.skillmodel import Skill
 from models.availabilitymodel import Availability
 from models.bookingmodel import Booking
 from models.reviewmodel import Review
+from models.messagemodel import Message
 
 from flask_bcrypt import Bcrypt
 
@@ -18,13 +20,46 @@ from routes.userroute import user_bp
 from routes.skillroute import skill_bp
 from routes.availabilityroute import availability_bp
 from routes.reviewroute import review_bp
+from routes.searchroute import search_bp
+from routes.messageroute import message_bp
+
 
 from routes.bookingroute import booking_bp
 
 
 
 app = Flask(__name__)
+swagger_config = {
+    "headers": [],
+    "specs": [
+        {
+            "endpoint": "apispec",
+            "route": "/apispec.json",
+            "rule_filter": lambda rule: True,
+            "model_filter": lambda tag: True,
+        }
+    ],
+    "static_url_path": "/flasgger_static",
+    "swagger_ui": True,
+    "specs_route": "/apidocs/"
+}
 
+swagger_template = {
+    "swagger": "2.0",
+    "info": {
+        "title":
+        "Community Skill Exchange Marketplace API",
+        "description":
+        "API for skill sharing, booking, messaging, reviews and barter-based learning.",
+        "version": "1.0.0"
+    }
+}
+
+swagger = Swagger(
+    app,
+    config=swagger_config,
+    template=swagger_template
+)
 
 app.config.from_object(Config)
 
@@ -39,9 +74,22 @@ jwt = JWTManager(app)
 bcrypt = Bcrypt(app)
 
 
-@app.route("/")
-def home():
-    return {"message": "Community Skill Exchange Marketplace API Running"}
+
+@app.route("/test")
+def test():
+    """
+    Test API
+    ---
+    tags:
+      - Testing
+    responses:
+      200:
+        description: Test successful
+    """
+    return {
+        "message":
+        "Swagger Test Working"
+    }
 
 
 app.register_blueprint(auth_bp,url_prefix="/auth")
@@ -50,7 +98,8 @@ app.register_blueprint(skill_bp,url_prefix="/skill")
 app.register_blueprint(availability_bp,url_prefix="/availability")
 app.register_blueprint(booking_bp, url_prefix="/booking")
 app.register_blueprint(review_bp,url_prefix="/review")
-
+app.register_blueprint(search_bp,url_prefix="/search")
+app.register_blueprint(message_bp,url_prefix="/message")
 # Create database tables
 with app.app_context():
     db.create_all()
