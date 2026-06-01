@@ -60,6 +60,9 @@ swagger = Swagger(
     config=swagger_config,
     template=swagger_template
 )
+@app.route('/')
+def home():
+    return """<div style='text-align:center;'><h1 style='color:Purple;'>Welcome to Skill Exchange Community</h1></div>"""
 
 app.config.from_object(Config)
 

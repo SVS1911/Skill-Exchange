@@ -1,81 +1,128 @@
 from models.availabilitymodel import Availability
 from database.db import db
+from flask_jwt_extended import get_jwt_identity
+from datetime import datetime
 
 
-def add_availability(user_id,data):
+# ---------------- ADD AVAILABILITY ---------------- #
 
-    slot = Availability(
-        date=data["date"],
-        start_time=data["start_time"],
-        end_time=data["end_time"],
+def add_availability(data):
+
+    user_id = get_jwt_identity()
+
+    # Get request data
+    date = data.get("date")
+    start_time = data.get("start_time")
+    end_time = data.get("end_time")
+
+    # ---------- EMPTY FIELD VALIDATION ---------- #
+    if not date or not start_time or not end_time:
+        return {
+            "message": "All fields are required"
+        }, 400
+
+    # ---------- PAST DATE VALIDATION ---------- #
+    selected_date = datetime.strptime(
+        date,
+        "%Y-%m-%d"
+    ).date()
+
+    today = datetime.today().date()
+
+    if selected_date < today:
+        return {
+            "message": "Cannot add past dates"
+        }, 400
+
+    # ---------- DUPLICATE SLOT CHECK ---------- #
+    existing_slot = Availability.query.filter_by(
+        user_id=user_id,
+        date=date,
+        start_time=start_time,
+        end_time=end_time
+    ).first()
+
+    if existing_slot:
+        return {
+            "message": "This slot already exists"
+        }, 400
+
+    # ---------- OVERLAPPING SLOT CHECK ---------- #
+    conflicting_slot = Availability.query.filter(
+        Availability.user_id == user_id,
+        Availability.date == date,
+        Availability.start_time < end_time,
+        Availability.end_time > start_time
+    ).first()
+
+    if conflicting_slot:
+        return {
+            "message": "Time slot conflict"
+        }, 400
+
+    # ---------- SAVE SLOT ---------- #
+    new_slot = Availability(
+        date=date,
+        start_time=start_time,
+        end_time=end_time,
         user_id=user_id
     )
 
-    db.session.add(slot)
+    db.session.add(new_slot)
     db.session.commit()
 
     return {
-        "message":
-        "Availability Added Successfully"
+        "message": "Availability Added Successfully"
     }, 201
 
 
-def get_my_availability(user_id):
+# ---------------- GET MY AVAILABILITY ---------------- #
 
-    slots = Availability.query.filter_by(user_id=user_id).all()
+def get_my_availability():
 
-    result = []
+    user_id = get_jwt_identity()
 
-    for slot in slots:
+    slots = Availability.query.filter_by(
+        user_id=user_id
+    ).all()
 
-        result.append({
-            "id": slot.id,
-            "day": slot.date,
-            "start_time":slot.start_time,
-            "end_time":slot.end_time
-        })
-
-    return result, 200
-
-
-def update_availability(availability_id,user_id,data):
-
-    slot = Availability.query.filter_by(id=availability_id,user_id=user_id).first()
-
-    if not slot:
+    if not slots:
         return {
-            "message":
-            "Availability not found"
+            "message": "No availability found"
         }, 404
 
-    slot.day = data.get("day",slot.day)
+    availability_list = []
 
-    slot.start_time = data.get("start_time",slot.start_time)
+    for slot in slots:
+        availability_list.append({
+            "id": slot.id,
+            "date": str(slot.date),
+            "start_time": str(slot.start_time),
+            "end_time": str(slot.end_time)
+        })
 
-    slot.end_time = data.get("end_time",slot.end_time)
-
-    db.session.commit()
-
-    return {
-        "message":
-        "Availability Updated Successfully"
-    }, 200
+    return availability_list, 200
 
 
-def delete_availability(availability_id,user_id):
+# ---------------- DELETE SLOT ---------------- #
 
-    slot = Availability.query.filter_by(id=availability_id,user_id=user_id).first()
+def delete_availability(slot_id):
+
+    user_id = get_jwt_identity()
+
+    slot = Availability.query.filter_by(
+        id=slot_id,
+        user_id=user_id
+    ).first()
 
     if not slot:
         return {
-            "message":
-            "Availability not found"
+            "message": "Slot not found"
         }, 404
 
     db.session.delete(slot)
     db.session.commit()
 
     return {
-        "message":
-        "Availability Deleted Successfully"
+        "message": "Slot deleted successfully"
     }, 200

@@ -1,68 +1,60 @@
-from flask import Blueprint
-from flask import request
-
-from flask_jwt_extended import (
-    jwt_required,
-    get_jwt_identity
-)
+from flask import Blueprint, request
+from flask_jwt_extended import jwt_required
 
 from services.availabilityservice import (
     add_availability,
     get_my_availability,
-    update_availability,
     delete_availability
 )
 
-availability_bp = Blueprint("availability",__name__)
+availability_bp = Blueprint(
+    "availability",
+    __name__,
+    url_prefix="/availability"
+)
 
 
-@availability_bp.route("/add",methods=["POST"])
+# ---------------- ADD SLOT ---------------- #
+
+@availability_bp.route(
+    "/add",
+    methods=["POST"]
+)
 @jwt_required()
 def add_slot():
 
-    user_id = get_jwt_identity()
+    data = request.get_json()
 
-    data = request.json
+    response, status_code = add_availability(data)
 
-    return add_availability(
-        user_id,
-        data
-    )
+    return response, status_code
 
 
-@availability_bp.route("/mine",methods=["GET"])
+# ---------------- GET MY SLOTS ---------------- #
+
+@availability_bp.route(
+    "/my",
+    methods=["GET"]
+)
 @jwt_required()
 def my_slots():
 
-    user_id = get_jwt_identity()
+    response, status_code = get_my_availability()
 
-    return get_my_availability(
-        user_id
-    )
+    return response, status_code
 
 
-@availability_bp.route("/update/<int:id>",methods=["PUT"])
+# ---------------- DELETE SLOT ---------------- #
+
+@availability_bp.route(
+    "/delete/<int:slot_id>",
+    methods=["DELETE"]
+)
 @jwt_required()
-def edit_slot(id):
+def delete_slot(slot_id):
 
-    user_id = get_jwt_identity()
-
-    data = request.json
-
-    return update_availability(
-        id,
-        user_id,
-        data
+    response, status_code = delete_availability(
+        slot_id
     )
 
-
-@availability_bp.route("/delete/<int:id>",methods=["DELETE"])
-@jwt_required()
-def remove_slot(id):
-
-    user_id = get_jwt_identity()
-
-    return delete_availability(
-        id,
-        user_id
-    )
+    return response, status_code
