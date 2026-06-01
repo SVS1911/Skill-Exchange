@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Skill Exchange</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════
+     AUTH SCREEN
+════════════════════════════════════ -->
+<div id="auth-screen" class="auth-screen">
+  <div class="auth-bg-grid"></div>
+  <div class="auth-bg-glow"></div>
+  <div class="auth-orb auth-orb-1"></div>
+  <div class="auth-orb auth-orb-2"></div>
+  <div class="auth-orb auth-orb-3"></div>
+
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="logo-icon">⚡</div>
+      <span class="auth-logo-text">SkillExchange</span>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab-btn active" data-auth-tab="login" onclick="showAuthTab('login')">Sign In</button>
+      <button class="auth-tab-btn" data-auth-tab="register" onclick="showAuthTab('register')">Sign Up</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="auth-login" class="auth-tab-panel active">
+      <div class="auth-title">Welcome back</div>
+      <div class="auth-subtitle">Sign in to continue learning and teaching</div>
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input id="login-email" type="email" class="form-input" placeholder="you@example.com" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input id="login-password" type="password" class="form-input" placeholder="••••••••" required />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%">Sign In →</button>
+      </form>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="auth-register" class="auth-tab-panel">
+      <div class="auth-title">Join the community</div>
+      <div class="auth-subtitle">Create your account and start exchanging skills</div>
+      <form id="register-form">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input id="reg-name" type="text" class="form-input" placeholder="Your name" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input id="reg-email" type="email" class="form-input" placeholder="you@example.com" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input id="reg-password" type="password" class="form-input" placeholder="Min 6 characters" required />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%">Create Account →</button>
+      </form>
+    </div>
+
+    <div class="auth-tagline">
+      <div class="auth-tagline-text">Trusted by learners worldwide</div>
+      <div class="auth-tagline-stat">
+        <div class="auth-stat-item">
+          <div class="auth-stat-num">500+</div>
+          <div class="auth-stat-label">Skills Listed</div>
+        </div>
+        <div class="auth-stat-item">
+          <div class="auth-stat-num">1.2k</div>
+          <div class="auth-stat-label">Members</div>
+        </div>
+        <div class="auth-stat-item">
+          <div class="auth-stat-num">98%</div>
+          <div class="auth-stat-label">Satisfaction</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     MAIN APP LAYOUT
+════════════════════════════════════ -->
+<div id="app-layout" class="app-layout" style="display:none">
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <a class="header-logo" onclick="navigate('dashboard')" style="cursor:pointer">
+      <div class="logo-icon">⚡</div>
+      SkillExchange
+    </a>
+    <div class="header-right">
+      <div class="points-badge">⚡ <span id="headerPoints">0 pts</span></div>
+      <div class="user-avatar" id="headerAvatar" onclick="navigate('profile')">U</div>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <aside class="app-sidebar">
+    <div class="nav-section-label">Main</div>
+    <button class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+      <span class="nav-icon">🏠</span> Dashboard
+    </button>
+    <button class="nav-item" data-page="marketplace" onclick="navigate('marketplace')">
+      <span class="nav-icon">🌐</span> Marketplace
+    </button>
+
+    <div class="nav-section-label">Teaching</div>
+    <button class="nav-item" data-page="my-skills" onclick="navigate('my-skills')">
+      <span class="nav-icon">💡</span> My Skills
+    </button>
+    <button class="nav-item" data-page="availability" onclick="navigate('availability')">
+      <span class="nav-icon">🗓</span> Availability
+    </button>
+
+    <div class="nav-section-label">Learning</div>
+    <button class="nav-item" data-page="bookings" onclick="navigate('bookings')">
+      <span class="nav-icon">📅</span> Bookings
+    </button>
+    <button class="nav-item" data-page="messages" onclick="navigate('messages')">
+      <span class="nav-icon">💬</span> Messages
+    </button>
+    <button class="nav-item" data-page="reviews" onclick="navigate('reviews')">
+      <span class="nav-icon">⭐</span> Reviews
+    </button>
+
+    <div class="sidebar-bottom">
+      <button class="nav-item" data-page="profile" onclick="navigate('profile')">
+        <span class="nav-icon">👤</span> Profile
+      </button>
+      <button class="nav-item" onclick="logout()">
+        <span class="nav-icon">🚪</span> Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="app-main">
+
+    <!-- ── DASHBOARD ── -->
+    <div id="page-dashboard" class="page active">
+      <div class="hero-banner">
+        <div class="hero-text">
+          <div class="hero-greeting">Community Skill Exchange</div>
+          <div class="hero-title" id="dash-greeting">Good day! 👋</div>
+          <div class="hero-desc">Discover skills, share knowledge, and grow together with your community.</div>
+          <div class="hero-actions">
+            <button class="btn btn-primary btn-lg" onclick="navigate('marketplace')">🌐 Browse Skills</button>
+            <button class="btn btn-secondary btn-lg" onclick="openModal('modal-add-skill')">+ Add Skill</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card stat-amber">
+          <div class="stat-icon">⚡</div>
+          <div class="stat-label">Your Points</div>
+          <div class="stat-value" id="dash-points">0</div>
+        </div>
+        <div class="stat-card stat-teal">
+          <div class="stat-icon">💡</div>
+          <div class="stat-label">Skills Listed</div>
+          <div class="stat-value" id="dash-skill-count">0</div>
+        </div>
+        <div class="stat-card stat-violet">
+          <div class="stat-icon">📅</div>
+          <div class="stat-label">Total Bookings</div>
+          <div class="stat-value" id="dash-booking-count">0</div>
+        </div>
+        <div class="stat-card stat-coral">
+          <div class="stat-icon">⏳</div>
+          <div class="stat-label">Pending</div>
+          <div class="stat-value" id="dash-pending-count">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🎓</div>
+          <div class="stat-label">Role</div>
+          <div class="stat-value" style="font-size:1.2rem;text-transform:capitalize" id="dash-role">—</div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">Recent Skills in Marketplace</div>
+        <button class="btn btn-secondary btn-sm" onclick="navigate('marketplace')">View All →</button>
+      </div>
+      <div class="grid-auto" id="dash-recent-skills">
+        <div class="loading-overlay"><div class="loader"></div></div>
+      </div>
+    </div>
+
+    <!-- ── MARKETPLACE ── -->
+    <div id="page-marketplace" class="page">
+      <div class="page-header">
+        <div class="page-title">Marketplace</div>
+        <div class="page-subtitle">Discover skills offered by community members</div>
+      </div>
+
+      <div class="marketplace-search-row">
+        <div>
+          <label class="form-label">Search Skill</label>
+          <input id="search-skill-input" type="text" class="form-input" placeholder="e.g. Python, Guitar…" />
+        </div>
+        <div>
+          <label class="form-label">Search User</label>
+          <input id="search-user-input" type="text" class="form-input" placeholder="Teacher name…" />
+        </div>
+        <div>
+          <label class="form-label">Sort</label>
+          <select id="search-sort" class="form-select">
+            <option value="">Default</option>
+            <option value="points_asc">Points ↑</option>
+            <option value="points_desc">Points ↓</option>
+          </select>
+        </div>
+        <div style="padding-top:24px">
+          <button class="btn btn-primary" onclick="searchMarketplace()">🔍 Search</button>
+        </div>
+      </div>
+
+      <div class="filter-row">
+        <button class="filter-chip active" onclick="filterByCategory('all')">All</button>
+        <button class="filter-chip" onclick="filterByCategory('Technology')">💻 Technology</button>
+        <button class="filter-chip" onclick="filterByCategory('Music')">🎵 Music</button>
+        <button class="filter-chip" onclick="filterByCategory('Language')">🌍 Language</button>
+        <button class="filter-chip" onclick="filterByCategory('Arts')">🎨 Arts</button>
+        <button class="filter-chip" onclick="filterByCategory('Sports')">⚽ Sports</button>
+        <button class="filter-chip" onclick="filterByCategory('Business')">💼 Business</button>
+      </div>
+
+      <div class="grid-auto" id="marketplace-grid">
+        <div class="loading-overlay col-span-3"><div class="loader"></div></div>
+      </div>
+    </div>
+
+    <!-- ── MY SKILLS ── -->
+    <div id="page-my-skills" class="page">
+      <div class="page-header flex-between">
+        <div>
+          <div class="page-title">My Skills</div>
+          <div class="page-subtitle">Manage the skills you offer to the community</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-add-skill')">+ Add Skill</button>
+      </div>
+      <div id="my-skills-list">
+        <div class="loading-overlay"><div class="loader"></div></div>
+      </div>
+    </div>
+
+    <!-- ── BOOKINGS ── -->
+    <div id="page-bookings" class="page">
+      <div class="page-header">
+        <div class="page-title">Bookings</div>
+        <div class="page-subtitle">Manage your learning sessions and requests</div>
+      </div>
+      <div class="card" style="overflow-x:auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Skill</th>
+              <th>With</th>
+              <th>Scheduled</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="bookings-table-body">
+            <tr><td colspan="6" style="text-align:center;padding:40px"><div class="loader"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── AVAILABILITY ── -->
+    <div id="page-availability" class="page">
+      <div class="page-header">
+        <div class="page-title">Availability</div>
+        <div class="page-subtitle">Set your available time slots for teaching</div>
+      </div>
+
+      <div class="card mb-6">
+        <div class="card-title mb-4">Add Time Slot</div>
+        <form id="slot-form" onsubmit="event.preventDefault(); addSlot()">
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Day of Week</label>
+              <select id="slot-day" class="form-select">
+                <option value="">Select day</option>
+                <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
+                <option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Start Time</label>
+              <input id="slot-start" type="time" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">End Time</label>
+              <input id="slot-end" type="time" class="form-input" />
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">+ Add Slot</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-title mb-4">Your Availability</div>
+        <div id="availability-slots"><div class="loading-overlay"><div class="loader"></div></div></div>
+      </div>
+    </div>
+
+    <!-- ── MESSAGES ── -->
+    <div id="page-messages" class="page">
+      <div class="page-header">
+        <div class="page-title">Messages</div>
+        <div class="page-subtitle">Chat with your learners and teachers</div>
+      </div>
+      <div id="chat-list">
+        <div class="loading-overlay"><div class="loader"></div></div>
+      </div>
+    </div>
+
+    <!-- ── REVIEWS ── -->
+    <div id="page-reviews" class="page">
+      <div class="page-header">
+        <div class="page-title">Reviews</div>
+        <div class="page-subtitle">Feedback from your learners</div>
+      </div>
+      <div class="flex-col" id="reviews-list">
+        <div class="loading-overlay"><div class="loader"></div></div>
+      </div>
+    </div>
+
+    <!-- ── PROFILE ── -->
+    <div id="page-profile" class="page">
+      <div class="page-header flex-between">
+        <div>
+          <div class="page-title">Profile</div>
+          <div class="page-subtitle">Your public profile and account settings</div>
+        </div>
+        <button class="btn btn-secondary" onclick="openModal('modal-edit-profile')">✏️ Edit Profile</button>
+      </div>
+
+      <div>
+        <div class="profile-banner"></div>
+        <div class="profile-info-card">
+          <div class="profile-avatar" id="profile-avatar-text">U</div>
+          <div class="profile-name" id="profile-name">Loading…</div>
+          <div class="profile-meta">
+            <div class="profile-meta-item">✉️ <span id="profile-email">—</span></div>
+            <div class="profile-meta-item">🎓 <span id="profile-role">—</span></div>
+            <div class="profile-meta-item">📍 <span id="profile-location">—</span></div>
+          </div>
+          <div class="profile-stats-grid">
+            <div class="profile-stat-item">
+              <div class="profile-stat-num text-amber" id="profile-points">0</div>
+              <div class="profile-stat-label">Points</div>
+            </div>
+            <div class="profile-stat-item">
+              <div class="profile-stat-num text-amber" id="profile-rating">—</div>
+              <div class="profile-stat-label">Rating</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-title">About</div>
+        <p id="profile-bio" class="text-sm" style="color:var(--text-secondary)">No bio added.</p>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════
+     MODALS
+════════════════════════════════════ -->
+
+<!-- Add Skill Modal -->
+<div id="modal-add-skill" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add New Skill</div>
+      <button class="modal-close" onclick="closeModal('modal-add-skill')">✕</button>
+    </div>
+    <form id="add-skill-form" onsubmit="event.preventDefault(); addSkill()">
+      <div class="form-group">
+        <label class="form-label">Title *</label>
+        <input id="skill-title" type="text" class="form-input" placeholder="e.g. Python Programming" required />
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">Category *</label>
+          <select id="skill-category" class="form-select" required>
+            <option value="">Select…</option>
+            <option>Technology</option><option>Music</option><option>Language</option>
+            <option>Arts</option><option>Sports</option><option>Business</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Level *</label>
+          <select id="skill-level" class="form-select" required>
+            <option value="">Select…</option>
+            <option>Beginner</option><option>Intermediate</option><option>Advanced</option><option>Expert</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea id="skill-desc" class="form-textarea" placeholder="Describe what you'll teach…"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Exchange Points</label>
+        <input id="skill-points" type="number" class="form-input" value="10" min="1" max="1000" />
+        <div class="form-hint">Points required per session</div>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%">Add Skill 🎉</button>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Skill Modal -->
+<div id="modal-edit-skill" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Edit Skill</div>
+      <button class="modal-close" onclick="closeModal('modal-edit-skill')">✕</button>
+    </div>
+    <input type="hidden" id="edit-skill-id" />
+    <div class="form-group">
+      <label class="form-label">Title</label>
+      <input id="edit-skill-title" type="text" class="form-input" />
+    </div>
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select id="edit-skill-category" class="form-select">
+          <option>Technology</option><option>Music</option><option>Language</option>
+          <option>Arts</option><option>Sports</option><option>Business</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Level</label>
+        <select id="edit-skill-level" class="form-select">
+          <option>Beginner</option><option>Intermediate</option><option>Advanced</option><option>Expert</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <textarea id="edit-skill-desc" class="form-textarea"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Exchange Points</label>
+      <input id="edit-skill-points" type="number" class="form-input" min="1" />
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="updateSkill()">Save Changes</button>
+  </div>
+</div>
+
+<!-- Booking Modal -->
+<div id="modal-booking" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Book a Session</div>
+      <button class="modal-close" onclick="closeModal('modal-booking')">✕</button>
+    </div>
+    <input type="hidden" id="booking-skill-id" />
+    <input type="hidden" id="booking-teacher-id" />
+    <div class="card mb-4" style="background:var(--teal-glow);border-color:var(--teal-dim)">
+      <div class="text-sm" style="color:var(--text-muted)">Booking for</div>
+      <div class="card-title text-teal" id="booking-skill-name">—</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Scheduled Time *</label>
+      <input id="booking-time" type="datetime-local" class="form-input" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Message (optional)</label>
+      <textarea id="booking-message" class="form-textarea" placeholder="What do you hope to learn?"></textarea>
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="createBooking()">Send Booking Request 📅</button>
+  </div>
+</div>
+
+<!-- Chat Modal -->
+<div id="modal-chat" class="modal-overlay">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <div class="modal-title" id="chat-modal-title">Chat</div>
+      <button class="modal-close" onclick="closeModal('modal-chat')">✕</button>
+    </div>
+    <div id="chat-messages" class="chat-window" style="height:320px"></div>
+    <div class="flex-row mt-4" style="gap:8px">
+      <textarea id="chat-input" class="form-textarea" style="min-height:44px;max-height:100px;flex:1" placeholder="Type a message…"></textarea>
+      <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- Review Modal -->
+<div id="modal-review" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Leave a Review</div>
+      <button class="modal-close" onclick="closeModal('modal-review')">✕</button>
+    </div>
+    <input type="hidden" id="review-booking-id" />
+    <input type="hidden" id="review-teacher-id" />
+    <div class="form-group">
+      <label class="form-label">Rating</label>
+      <div class="rating-input">
+        <span class="rating-star" onclick="setRating(1)">★</span>
+        <span class="rating-star" onclick="setRating(2)">★</span>
+        <span class="rating-star" onclick="setRating(3)">★</span>
+        <span class="rating-star" onclick="setRating(4)">★</span>
+        <span class="rating-star" onclick="setRating(5)">★</span>
+      </div>
+      <input type="hidden" id="review-rating" value="0" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Comment</label>
+      <textarea id="review-comment" class="form-textarea" placeholder="Share your experience…"></textarea>
+    </div>
+    <button class="btn btn-amber" style="width:100%" onclick="submitReview()">Submit Review ⭐</button>
+  </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div id="modal-edit-profile" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Edit Profile</div>
+      <button class="modal-close" onclick="closeModal('modal-edit-profile')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Full Name</label>
+      <input id="edit-name" type="text" class="form-input" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Bio</label>
+      <textarea id="edit-bio" class="form-textarea" placeholder="Tell the community about yourself…"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Location</label>
+      <input id="edit-location" type="text" class="form-input" placeholder="City, Country" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Skills Offered</label>
+      <input id="edit-skills-offered" type="text" class="form-input" placeholder="e.g. Python, Guitar, Spanish" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Skills Wanted</label>
+      <input id="edit-skills-wanted" type="text" class="form-input" placeholder="e.g. Photography, Cooking" />
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="updateProfile()">Save Profile</button>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<script>
+  // Star rating helper
+  function setRating(val) {
+    document.getElementById('review-rating').value = val;
+    document.querySelectorAll('.rating-star').forEach((s, i) => {
+      s.classList.toggle('active', i < val);
+    });
+  }
+</script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

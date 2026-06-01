@@ -1,4 +1,4 @@
-from flask import Flask , jsonify
+from flask import Flask, jsonify, render_template
 from flask_jwt_extended import JWTManager
 from datetime import timedelta
 from flasgger import Swagger
@@ -22,13 +22,11 @@ from routes.availabilityroute import availability_bp
 from routes.reviewroute import review_bp
 from routes.searchroute import search_bp
 from routes.messageroute import message_bp
-
-
 from routes.bookingroute import booking_bp
 
 
-
 app = Flask(__name__)
+
 swagger_config = {
     "headers": [],
     "specs": [
@@ -47,35 +45,26 @@ swagger_config = {
 swagger_template = {
     "swagger": "2.0",
     "info": {
-        "title":
-        "Community Skill Exchange Marketplace API",
-        "description":
-        "API for skill sharing, booking, messaging, reviews and barter-based learning.",
+        "title": "Community Skill Exchange Marketplace API",
+        "description": "API for skill sharing, booking, messaging, reviews and barter-based learning.",
         "version": "1.0.0"
     }
 }
 
-swagger = Swagger(
-    app,
-    config=swagger_config,
-    template=swagger_template
-)
+swagger = Swagger(app, config=swagger_config, template=swagger_template)
+
+
 @app.route('/')
 def home():
-    return """<div style='text-align:center;'><h1 style='color:Purple;'>Welcome to Skill Exchange Community</h1></div>"""
+    return render_template('index.html')
+
 
 app.config.from_object(Config)
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=30)
 
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=30) 
-
-# Initialize DB
 db.init_app(app)
-
-# JWT
 jwt = JWTManager(app)
-
 bcrypt = Bcrypt(app)
-
 
 
 @app.route("/test")
@@ -89,24 +78,20 @@ def test():
       200:
         description: Test successful
     """
-    return {
-        "message":
-        "Swagger Test Working"
-    }
+    return {"message": "Swagger Test Working"}
 
 
-app.register_blueprint(auth_bp,url_prefix="/auth")
-app.register_blueprint(user_bp,url_prefix="/user")
-app.register_blueprint(skill_bp,url_prefix="/skill")
-app.register_blueprint(availability_bp,url_prefix="/availability")
+app.register_blueprint(auth_bp, url_prefix="/auth")
+app.register_blueprint(user_bp, url_prefix="/user")
+app.register_blueprint(skill_bp, url_prefix="/skill")
+app.register_blueprint(availability_bp, url_prefix="/availability")
 app.register_blueprint(booking_bp, url_prefix="/booking")
-app.register_blueprint(review_bp,url_prefix="/review")
-app.register_blueprint(search_bp,url_prefix="/search")
-app.register_blueprint(message_bp,url_prefix="/message")
-# Create database tables
+app.register_blueprint(review_bp, url_prefix="/review")
+app.register_blueprint(search_bp, url_prefix="/search")
+app.register_blueprint(message_bp, url_prefix="/message")
+
 with app.app_context():
     db.create_all()
-
 
 
 if __name__ == "__main__":
