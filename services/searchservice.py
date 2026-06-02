@@ -12,7 +12,7 @@ def search_marketplace(skill=None, user=None, sort=None):
     if user:
         query = query.filter(User.name.ilike(f"%{user}%"))
 
-    if sort == "rating" :
+    if sort == "rating":
         query = query.order_by(User.rating.desc())
     elif sort == "points":
         query = query.order_by(User.points.desc())
