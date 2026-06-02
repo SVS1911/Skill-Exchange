@@ -1,15 +1,26 @@
+
 FROM python:3.10-slim
 
+# Prevent Python from creating .pyc files
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Enable real-time logs
+ENV PYTHONUNBUFFERED=1
+
+# Set working directory
 WORKDIR /app
 
+# Install dependencies
 COPY requirements.txt .
+
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy project files
 COPY . .
 
-# Create directory for SQLite database persistence
-RUN mkdir -p /app/instance
-
+# Expose port (for documentation only)
 EXPOSE 5000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "app:app"]
+# Run Flask app with Gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--timeout", "120", "app:app"]
