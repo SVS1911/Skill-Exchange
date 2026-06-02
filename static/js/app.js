@@ -176,6 +176,7 @@ function openModal(id) {
 }
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
+  if (id === 'modal-chat') stopChatPolling();
 }
 
 /* ── TABS ── */
@@ -286,8 +287,14 @@ function skillCardHTML(s, showBook = false) {
   const expClass = `exp-${(s.experience_level || 'beginner').toLowerCase()}`;
   // Store full skill object by id so onclick never needs to embed strings
   window._skillRegistry[s.id] = s;
+  const isOwn = state.user && state.user.id === s.user_id;
+  // Dashboard cards (showBook=false) are clickable: own skills go to My Skills, others open booking
+  const cardClick = !showBook ? (isOwn
+    ? `onclick="navigate('my-skills')" style="cursor:pointer"`
+    : `onclick="navigate('marketplace'); setTimeout(()=>openSkillDrawer(${s.id}),300)" style="cursor:pointer"`)
+    : '';
   return `
-    <div class="skill-card">
+    <div class="skill-card" ${cardClick}>
       <div class="skill-category-tag">🏷 ${s.category || 'General'}</div>
       <div class="skill-title">${s.title}</div>
       <div class="skill-desc">${s.description || 'No description provided.'}</div>
@@ -301,10 +308,19 @@ function skillCardHTML(s, showBook = false) {
           <span class="points-chip">⚡ ${s.exchange_points || 10}</span>
         </div>
       </div>
-      ${showBook && isLoggedIn() ? `
-        <button class="btn btn-primary btn-sm mt-4" onclick="openBookingModalById(${s.id})">
-          📅 Book Session
-        </button>
+      ${showBook && isLoggedIn() && !(state.user && state.user.id === s.user_id) ? `
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openSkillDrawer(${s.id})">
+            👤 View Profile
+          </button>
+          <button class="btn btn-primary btn-sm" style="flex:1" onclick="openSkillDrawer(${s.id})">
+            📅 Book Session
+          </button>
+        </div>
+      ` : showBook && isLoggedIn() && state.user && state.user.id === s.user_id ? `
+        <div class="btn btn-ghost btn-sm mt-4" style="cursor:default;opacity:0.6;pointer-events:none;">
+          ✏️ Your Skill
+        </div>
       ` : ''}
     </div>
   `;
@@ -763,6 +779,23 @@ async function deleteSlot(id) {
    MESSAGES
 ══════════════════════════════════════ */
 let currentChatBookingId = null;
+let chatPollInterval = null;
+let lastRenderedMessageCount = 0;
+
+function stopChatPolling() {
+  if (chatPollInterval) {
+    clearInterval(chatPollInterval);
+    chatPollInterval = null;
+  }
+}
+
+async function refreshChatMessages() {
+  if (!currentChatBookingId) return;
+  try {
+    const messages = await API.get(`/message/chat/${currentChatBookingId}`);
+    renderChatMessages(Array.isArray(messages) ? messages : []);
+  } catch(e) {}
+}
 
 async function loadMessages() {
   try {
@@ -793,6 +826,8 @@ function renderChatList(bookings) {
 }
 
 async function openChat(bookingId, title) {
+  stopChatPolling();
+  lastRenderedMessageCount = 0;
   currentChatBookingId = bookingId;
   document.getElementById('chat-modal-title').textContent = `💬 ${title}`;
   document.getElementById('chat-messages').innerHTML = `<div class="loading-overlay"><div class="loader"></div></div>`;
@@ -803,15 +838,28 @@ async function openChat(bookingId, title) {
   } catch(e) {
     document.getElementById('chat-messages').innerHTML = `<div class="empty-state"><div class="empty-state-icon">💬</div><div class="empty-state-title">No messages yet</div></div>`;
   }
+  // Poll for new messages every 3 seconds while chat is open
+  chatPollInterval = setInterval(refreshChatMessages, 3000);
 }
 
 function renderChatMessages(messages) {
   const el = document.getElementById('chat-messages');
   const myId = state.user?.id;
+
   if (!messages.length) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">💬</div><div class="empty-state-title">No messages yet</div><div class="empty-state-desc">Start the conversation!</div></div>`;
+    if (lastRenderedMessageCount !== 0) {
+      el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">💬</div><div class="empty-state-title">No messages yet</div><div class="empty-state-desc">Start the conversation!</div></div>`;
+      lastRenderedMessageCount = 0;
+    }
     return;
   }
+
+  // Only re-render when there are new messages
+  if (messages.length === lastRenderedMessageCount) return;
+
+  // Check if user is scrolled near the bottom before re-rendering
+  const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+
   el.innerHTML = messages.map(m => {
     const isMine = m.sender_id === myId;
     return `
@@ -821,7 +869,11 @@ function renderChatMessages(messages) {
       </div>
     `;
   }).join('');
-  el.scrollTop = el.scrollHeight;
+
+  lastRenderedMessageCount = messages.length;
+
+  // Only auto-scroll if user was already near the bottom
+  if (isNearBottom) el.scrollTop = el.scrollHeight;
 }
 
 async function sendMessage() {
@@ -835,7 +887,20 @@ async function sendMessage() {
   try {
     await API.post('/message/send', data);
     document.getElementById('chat-input').value = '';
-    openChat(currentChatBookingId, document.getElementById('chat-modal-title').textContent.replace('💬 ', ''));
+    // Append the sent message immediately for instant feedback
+    const el = document.getElementById('chat-messages');
+    // Remove empty-state placeholder if present
+    const emptyState = el.querySelector('.empty-state');
+    if (emptyState) el.innerHTML = '';
+    const now = new Date().toISOString();
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex; flex-direction:column; align-items:flex-end';
+    div.innerHTML = `
+      <div class="message-bubble sent">${content}</div>
+      <div class="message-time"> · ${formatTime(now)}</div>
+    `;
+    el.appendChild(div);
+    el.scrollTop = el.scrollHeight;
   } catch(e) {
     toast('Failed to send', 'error');
   }
@@ -940,6 +1005,137 @@ async function submitReview() {
   await API.post('/review/add', data);
   closeModal('modal-review');
   toast('Review submitted! ⭐', 'success');
+}
+
+/* ══════════════════════════════════════
+   SKILL DETAIL DRAWER
+══════════════════════════════════════ */
+let _drawerSkill = null;
+
+function closeDrawer() {
+  document.getElementById('skill-detail-drawer').classList.remove('open');
+  _drawerSkill = null;
+}
+
+function closeDrawerOnBackdrop(e) {
+  if (e.target === document.getElementById('skill-detail-drawer')) closeDrawer();
+}
+
+// Called from the "Book Session" button on skill cards
+function openSkillDrawer(skillId) {
+  const s = window._skillRegistry[skillId];
+  if (!s) { toast('Skill data not found, please refresh', 'error'); return; }
+  _drawerSkill = s;
+  const drawer = document.getElementById('skill-detail-drawer');
+  document.getElementById('drawer-skill-title').textContent = s.title;
+  document.getElementById('drawer-body').innerHTML = `<div class="drawer-loading"><div class="loader"></div></div>`;
+  drawer.classList.add('open');
+  _populateDrawer(s);
+}
+
+async function _populateDrawer(s) {
+  const initials = s.owner_name
+    ? s.owner_name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+    : 'U';
+  const expClass = `exp-${(s.experience_level || 'beginner').toLowerCase()}`;
+
+  // Fetch reviews for this teacher
+  let reviews = [];
+  try {
+    const raw = await API.get(`/review/user/${s.user_id}`);
+    reviews = Array.isArray(raw) ? raw : [];
+  } catch(e) {}
+
+  const totalReviews = reviews.length;
+  const avgRating = totalReviews
+    ? (reviews.reduce((a, r) => a + (r.rating || 0), 0) / totalReviews).toFixed(1)
+    : null;
+
+  // Build star display
+  function starsHTML(rating, size = 'normal') {
+    const r = Math.round(parseFloat(rating) || 0);
+    return [1,2,3,4,5].map(i =>
+      `<span style="color:${i <= r ? '#f9c23c' : 'var(--border)'}">★</span>`
+    ).join('');
+  }
+
+  // Reviews section
+  let reviewsHTML = '';
+  if (!totalReviews) {
+    reviewsHTML = `<div class="drawer-no-reviews">No reviews yet — be the first to learn from ${s.owner_name || 'this teacher'}!</div>`;
+  } else {
+    reviewsHTML = `<div class="drawer-reviews-list">` +
+      reviews.slice(0, 5).map(r => `
+        <div class="drawer-review-item">
+          <div class="drawer-review-top">
+            <div class="drawer-review-reviewer">
+              <div class="mini-avatar" style="width:24px;height:24px;font-size:0.65rem">L</div>
+              Learner
+            </div>
+            <div class="drawer-review-stars">${starsHTML(r.rating)}</div>
+          </div>
+          <div class="drawer-review-text">${r.review || r.comment || 'Great session!'}</div>
+        </div>
+      `).join('') +
+    `</div>`;
+  }
+
+  document.getElementById('drawer-body').innerHTML = `
+    <!-- Teacher Profile Row -->
+    <div>
+      <div class="drawer-section-label">Teacher</div>
+      <div class="drawer-teacher-row">
+        <div class="drawer-teacher-avatar">${initials}</div>
+        <div class="drawer-teacher-info">
+          <div class="drawer-teacher-name">${s.owner_name || 'Unknown'}</div>
+          <div class="drawer-teacher-meta">
+            ${s.owner_location ? `📍 ${s.owner_location}` : ''}
+          </div>
+          <div class="drawer-rating-row">
+            ${avgRating ? `
+              <span class="drawer-stars">${starsHTML(avgRating)}</span>
+              <span class="drawer-rating-num">${avgRating}</span>
+              <span class="drawer-review-count">(${totalReviews} review${totalReviews !== 1 ? 's' : ''})</span>
+            ` : `<span class="drawer-review-count" style="font-size:0.78rem">No ratings yet</span>`}
+          </div>
+        </div>
+        ${s.owner_rating ? `
+          <div style="text-align:center;background:var(--teal-glow);border:1px solid var(--teal-dim);border-radius:10px;padding:8px 12px">
+            <div style="font-size:1.3rem;font-weight:800;color:var(--teal)">${parseFloat(s.owner_rating).toFixed(1)}</div>
+            <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em">Rating</div>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+
+    <!-- Skill Details -->
+    <div>
+      <div class="drawer-section-label">Skill Details</div>
+      <div class="drawer-skill-info">
+        <div class="drawer-tags">
+          <span class="skill-category-tag">🏷 ${s.category || 'General'}</span>
+          <span class="exp-badge ${expClass}">${s.experience_level || 'Beginner'}</span>
+          <span class="points-chip">⚡ ${s.exchange_points || 10} pts</span>
+        </div>
+        <div class="drawer-skill-desc">${s.description || 'No description provided.'}</div>
+      </div>
+    </div>
+
+    <!-- Reviews -->
+    <div>
+      <div class="drawer-section-label">Reviews ${totalReviews ? `· ${totalReviews}` : ''}</div>
+      ${reviewsHTML}
+    </div>
+  `;
+}
+
+// Called from the drawer footer "Book This Session" button
+function proceedToBooking() {
+  if (!_drawerSkill) return;
+  const s = _drawerSkill;
+  closeDrawer();
+  // Small delay lets drawer close smoothly before modal opens
+  setTimeout(() => openBookingModal(s.id, s.title, s.user_id), 220);
 }
 
 /* ── UTILS ── */

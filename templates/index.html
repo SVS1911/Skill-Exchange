@@ -465,6 +465,25 @@
   </div>
 </div>
 
+<!-- Skill Detail Drawer -->
+<div id="skill-detail-drawer" class="drawer-overlay" onclick="closeDrawerOnBackdrop(event)">
+  <div class="drawer">
+    <div class="drawer-header">
+      <div class="drawer-title" id="drawer-skill-title">Skill Details</div>
+      <button class="modal-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="drawer-body" id="drawer-body">
+      <!-- Filled dynamically -->
+    </div>
+    <div class="drawer-footer">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeDrawer()">Cancel</button>
+      <button class="btn btn-primary" style="flex:2" id="drawer-book-btn" onclick="proceedToBooking()">
+        📅 Book This Session
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Booking Modal -->
 <div id="modal-booking" class="modal-overlay">
   <div class="modal" style="max-width:480px">

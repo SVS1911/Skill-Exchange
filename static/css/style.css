@@ -739,3 +739,165 @@ body {
 .date-chip-mon { font-size: 0.7rem; font-weight: 600; opacity: 0.75; text-transform: uppercase; letter-spacing: 0.04em; }
 .date-chip.selected .date-chip-day,
 .date-chip.selected .date-chip-mon { opacity: 0.85; }
+
+/* ═══════════════════════════════════════
+   SKILL DETAIL DRAWER
+═══════════════════════════════════════ */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.drawer-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+.drawer {
+  background: var(--bg-card);
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 560px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(40px);
+  transition: transform 0.28s cubic-bezier(0.22,1,0.36,1);
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.35);
+}
+.drawer-overlay.open .drawer {
+  transform: translateY(0);
+}
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.drawer-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--text-primary);
+}
+.drawer-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.drawer-footer {
+  display: flex;
+  gap: 10px;
+  padding: 14px 22px 20px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* Drawer inner blocks */
+.drawer-teacher-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.drawer-teacher-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal), var(--coral));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+.drawer-teacher-info { flex: 1; }
+.drawer-teacher-name { font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+.drawer-teacher-meta { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+.drawer-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+.drawer-stars { color: #f9c23c; font-size: 0.95rem; letter-spacing: 1px; }
+.drawer-rating-num { font-size: 0.8rem; font-weight: 600; color: var(--text-primary); }
+.drawer-review-count { font-size: 0.75rem; color: var(--text-muted); }
+
+.drawer-section-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.drawer-skill-info {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.drawer-skill-desc {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+.drawer-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.drawer-reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.drawer-review-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.drawer-review-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+.drawer-review-reviewer {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.drawer-review-stars { color: #f9c23c; font-size: 0.8rem; }
+.drawer-review-text { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; }
+.drawer-no-reviews {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 16px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+}
+.drawer-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
