@@ -63,7 +63,7 @@ def home():
 
 
 app.config.from_object(Config)
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=30)
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=48)
 
 db.init_app(app)
 jwt = JWTManager(app)

@@ -32,7 +32,7 @@ def create_booking(learner_id, data):
         return {"message": "Skill not found"}, 404
 
     # ---------- SELF-BOOKING GUARD ---------- #
-    if learner_id == skill.user_id:
+    if int(learner_id) == int(skill.user_id):
         return {"message": "You cannot book your own skill"}, 400
 
     # ---------- TEACHER AVAILABILITY CHECK ---------- #
