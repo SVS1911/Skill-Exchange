@@ -11,7 +11,41 @@ skill_bp = Blueprint("skill", __name__)
 @skill_bp.route("/create", methods=["POST"])
 @jwt_required()
 def add_skill():
+    """
+    Create Skill
+    ---
+    tags:
+      - Skills
 
+    security:
+      - Bearer: []
+
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            title:
+              type: string
+              example: Photography
+            category:
+              type: string
+              example: Art
+            description:
+              type: string
+              example: DSLR Basics
+            experience_level:
+              type: string
+              example: Intermediate
+            exchange_points:
+              type: integer
+              example: 20
+
+    responses:
+      201:
+        description: Skill added successfully
+    """
     user_id = get_jwt_identity()
 
     data = request.json
@@ -25,6 +59,16 @@ def add_skill():
 @skill_bp.route("/skills", methods=["GET"])
 def get_skills():
     # If a logged-in user hits this endpoint, exclude their own skills
+    """
+    Get All Skills
+    ---
+    tags:
+      - Skills
+
+    responses:
+      200:
+        description: List of skills
+    """
     try:
         verify_jwt_in_request(optional=True)
         current_user_id = get_jwt_identity()
@@ -37,7 +81,19 @@ def get_skills():
 @skill_bp.route("/my-skills", methods=["GET"])
 @jwt_required()
 def my_skills():
+    """
+    Get My Skills
+    ---
+    tags:
+      - Skills
 
+    security:
+      - Bearer: []
+
+    responses:
+      200:
+        description: User skills
+    """
     user_id = get_jwt_identity()
 
     return get_my_skills(

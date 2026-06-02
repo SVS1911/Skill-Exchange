@@ -35,6 +35,7 @@ def create_booking(learner_id, data):
     if int(learner_id) == int(skill.user_id):
         return {"message": "You cannot book your own skill"}, 400
 
+
     # ---------- TEACHER AVAILABILITY CHECK ---------- #
     availability = Availability.query.filter(
         Availability.user_id == skill.user_id,

@@ -2,7 +2,7 @@ from models.usermodel import User
 from models.skillmodel import Skill
 
 
-def search_marketplace(skill=None, user=None, sort=None):
+def search_marketplace(skill=None, user=None, sort=None, current_user_id=None):
 
     query = Skill.query.join(User)
 
@@ -12,6 +12,11 @@ def search_marketplace(skill=None, user=None, sort=None):
     if user:
         query = query.filter(User.name.ilike(f"%{user}%"))
 
+    if current_user_id:
+        query = query.filter(Skill.user_id != int(current_user_id))
+
+        
+         
     if sort == "rating":
         query = query.order_by(User.rating.desc())
     elif sort == "points":

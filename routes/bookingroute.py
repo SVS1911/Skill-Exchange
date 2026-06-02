@@ -17,36 +17,33 @@ booking_bp = Blueprint("booking", __name__)
 @jwt_required()
 def add_booking():
     """
-    Create a Booking
+    Create Booking
     ---
     tags:
       - Booking
+
     security:
       - Bearer: []
+
     parameters:
       - in: body
         name: body
         required: true
         schema:
-          type: object
-          required: [skill_id, booking_date, booking_time]
           properties:
             skill_id:
               type: integer
               example: 1
-            booking_date:
+            booking_day:
               type: string
-              example: "2026-06-10"
+              example: Saturday
             booking_time:
               type: string
-              example: "10:00"
+              example: 5 PM
+
     responses:
       201:
-        description: Booking created successfully
-      400:
-        description: Validation error (self-booking, unavailable, slot taken, missing fields)
-      404:
-        description: Skill not found
+        description: Booking created
     """
     learner_id = get_jwt_identity()
     data = request.get_json()
@@ -75,24 +72,23 @@ def my_bookings():
 @jwt_required()
 def accept_booking(id):
     """
-    Accept a Booking
+    Accept Booking
     ---
     tags:
       - Booking
+
     security:
       - Bearer: []
+
     parameters:
-      - in: path
-        name: id
-        type: integer
+      - name: id
+        in: path
         required: true
+        type: integer
+
     responses:
       200:
         description: Booking accepted
-      400:
-        description: Invalid status transition
-      404:
-        description: Booking not found
     """
     teacher_id = get_jwt_identity()
     return update_booking_status(id, teacher_id, "accepted")
@@ -129,24 +125,23 @@ def reject_booking(id):
 @jwt_required()
 def complete_booking(id):
     """
-    Complete a Booking
+    Complete Booking & Transfer Points
     ---
     tags:
       - Booking
+
     security:
       - Bearer: []
+
     parameters:
-      - in: path
-        name: id
-        type: integer
+      - name: id
+        in: path
         required: true
+        type: integer
+
     responses:
       200:
-        description: Booking completed and points transferred
-      400:
-        description: Must be accepted first, or insufficient points
-      404:
-        description: Booking not found
+        description: Booking completed
     """
     teacher_id = get_jwt_identity()
     return update_booking_status(id, teacher_id, "completed")
