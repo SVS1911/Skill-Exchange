@@ -25,7 +25,10 @@ from routes.messageroute import message_bp
 from routes.bookingroute import booking_bp
 
 
-app = Flask(__name__)
+import os
+app = Flask(__name__, 
+            template_folder=os.path.join(os.path.dirname(__file__), 'templates'),
+            static_folder=os.path.join(os.path.dirname(__file__), 'static'))
 
 swagger_config = {
     "headers": [],

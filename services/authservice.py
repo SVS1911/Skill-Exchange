@@ -35,4 +35,4 @@ def login_user(data):
 
     access_token = create_access_token(identity=str(user.id))
 
-    return {"message": "Login Successful","token": access_token}, 200
+    return {"message": "Login Successful","access_token": access_token}, 200

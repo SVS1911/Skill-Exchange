@@ -293,12 +293,8 @@
         <form id="slot-form" onsubmit="event.preventDefault(); addSlot()">
           <div class="form-grid-2">
             <div class="form-group">
-              <label class="form-label">Day of Week</label>
-              <select id="slot-day" class="form-select">
-                <option value="">Select day</option>
-                <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
-                <option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option>
-              </select>
+              <label class="form-label">Date</label>
+              <input type="date" id="slot-day" class="form-input">
             </div>
             <div class="form-group">
               <label class="form-label">Start Time</label>
@@ -471,26 +467,51 @@
 
 <!-- Booking Modal -->
 <div id="modal-booking" class="modal-overlay">
-  <div class="modal">
+  <div class="modal" style="max-width:480px">
     <div class="modal-header">
       <div class="modal-title">Book a Session</div>
       <button class="modal-close" onclick="closeModal('modal-booking')">✕</button>
     </div>
     <input type="hidden" id="booking-skill-id" />
     <input type="hidden" id="booking-teacher-id" />
+    <input type="hidden" id="booking-selected-date" />
+    <input type="hidden" id="booking-selected-time" />
+
+    <!-- Skill info banner -->
     <div class="card mb-4" style="background:var(--teal-glow);border-color:var(--teal-dim)">
       <div class="text-sm" style="color:var(--text-muted)">Booking for</div>
       <div class="card-title text-teal" id="booking-skill-name">—</div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Scheduled Time *</label>
-      <input id="booking-time" type="datetime-local" class="form-input" />
+
+    <!-- Step 1: Pick an available day -->
+    <div id="booking-step-1">
+      <div class="form-group">
+        <label class="form-label">Step 1 — Pick an available day</label>
+        <div id="booking-dates-loading" style="color:var(--text-muted);font-size:0.85rem;padding:8px 0">Loading available days…</div>
+        <div id="booking-dates-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"></div>
+        <div id="booking-no-dates-msg" style="display:none;color:var(--text-muted);font-size:0.85rem;padding:12px;border:1px solid var(--border);border-radius:8px;text-align:center;margin-top:6px">
+          This teacher has no upcoming availability yet.
+        </div>
+      </div>
+      <!-- Step 2: Available time slots appear here -->
+      <div id="booking-slots-container" style="display:none">
+        <div class="form-label mb-4" style="margin-bottom:8px">Step 2 — Choose a time slot</div>
+        <div id="booking-slots-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
+        <div id="booking-selected-slot-display" style="display:none;background:var(--teal-glow);border:1px solid var(--teal-dim);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:0.85rem;color:var(--teal)">
+          ✓ Selected: <strong id="booking-slot-label"></strong>
+        </div>
+      </div>
+      <div id="booking-no-slots-msg" style="display:none;color:var(--text-muted);font-size:0.85rem;margin-bottom:16px;padding:12px;border:1px solid var(--border);border-radius:8px;text-align:center">
+        No slots available on this day.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Message (optional)</label>
+        <textarea id="booking-message" class="form-textarea" rows="2" placeholder="What do you hope to learn?"></textarea>
+      </div>
+      <button class="btn btn-primary" style="width:100%" id="booking-submit-btn" disabled onclick="createBooking()">
+        Select a slot to continue
+      </button>
     </div>
-    <div class="form-group">
-      <label class="form-label">Message (optional)</label>
-      <textarea id="booking-message" class="form-textarea" placeholder="What do you hope to learn?"></textarea>
-    </div>
-    <button class="btn btn-primary" style="width:100%" onclick="createBooking()">Send Booking Request 📅</button>
   </div>
 </div>
 

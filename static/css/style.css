@@ -290,6 +290,7 @@ body {
   background: linear-gradient(135deg, var(--teal-glow), transparent);
   opacity: 0;
   transition: opacity 0.2s;
+  pointer-events: none;
 }
 .skill-card:hover { border-color: var(--teal-dim); transform: translateY(-3px); box-shadow: var(--shadow-card), var(--shadow-glow); }
 .skill-card:hover::after { opacity: 1; }
@@ -692,3 +693,49 @@ body {
   .marketplace-search-row { grid-template-columns: 1fr; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ─── BOOKING SLOT PICKER ─── */
+.slot-btn {
+  padding: 8px 14px;
+  border-radius: 99px;
+  border: 1px solid var(--teal-dim);
+  background: var(--bg-card);
+  color: var(--teal);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: var(--font-display);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.slot-btn:hover { background: var(--teal-glow); }
+.slot-btn.selected { background: var(--teal); color: var(--bg-primary); border-color: var(--teal); }
+.slot-btn.taken {
+  border-color: var(--border);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+/* ─── BOOKING DATE CHIP PICKER ─── */
+.date-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  min-width: 58px;
+  border-radius: 12px;
+  border: 1px solid var(--teal-dim);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s;
+  gap: 2px;
+}
+.date-chip:hover { background: var(--teal-glow); border-color: var(--teal); }
+.date-chip.selected { background: var(--teal); border-color: var(--teal); color: var(--bg-primary); }
+.date-chip-day { font-size: 0.7rem; font-weight: 600; opacity: 0.75; text-transform: uppercase; letter-spacing: 0.04em; }
+.date-chip-num { font-size: 1.25rem; font-weight: 700; line-height: 1; }
+.date-chip-mon { font-size: 0.7rem; font-weight: 600; opacity: 0.75; text-transform: uppercase; letter-spacing: 0.04em; }
+.date-chip.selected .date-chip-day,
+.date-chip.selected .date-chip-mon { opacity: 0.85; }

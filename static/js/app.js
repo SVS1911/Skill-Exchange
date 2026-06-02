@@ -278,9 +278,14 @@ function filterByCategory(cat) {
   }
 }
 
+// Safe registry so skill data is never injected raw into onclick strings
+window._skillRegistry = window._skillRegistry || {};
+
 function skillCardHTML(s, showBook = false) {
   const initials = s.owner_name ? s.owner_name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) : 'U';
   const expClass = `exp-${(s.experience_level || 'beginner').toLowerCase()}`;
+  // Store full skill object by id so onclick never needs to embed strings
+  window._skillRegistry[s.id] = s;
   return `
     <div class="skill-card">
       <div class="skill-category-tag">🏷 ${s.category || 'General'}</div>
@@ -297,7 +302,7 @@ function skillCardHTML(s, showBook = false) {
         </div>
       </div>
       ${showBook && isLoggedIn() ? `
-        <button class="btn btn-primary btn-sm mt-4" onclick="openBookingModal(${s.id}, '${s.title}', ${s.user_id})">
+        <button class="btn btn-primary btn-sm mt-4" onclick="openBookingModalById(${s.id})">
           📅 Book Session
         </button>
       ` : ''}
@@ -456,28 +461,211 @@ async function updateBookingStatus(id, action) {
   loadBookings();
 }
 
+// Safe entry point - reads from registry, never from raw onclick strings
+function openBookingModalById(skillId) {
+  const s = window._skillRegistry[skillId];
+  if (!s) { toast('Skill data not found, please refresh the page', 'error'); return; }
+  openBookingModal(s.id, s.title, s.user_id);
+}
+
 function openBookingModal(skillId, skillTitle, teacherId) {
+  if (!skillId || !teacherId) {
+    toast('Missing skill or teacher info', 'error');
+    return;
+  }
   document.getElementById('booking-skill-id').value = skillId;
   document.getElementById('booking-teacher-id').value = teacherId;
   document.getElementById('booking-skill-name').textContent = skillTitle;
+  document.getElementById('booking-selected-date').value = '';
+  document.getElementById('booking-selected-time').value = '';
+  const msgEl = document.getElementById('booking-message');
+  if (msgEl) msgEl.value = '';
+  // Reset dates UI
+  document.getElementById('booking-dates-list').innerHTML = '';
+  document.getElementById('booking-dates-loading').style.display = 'block';
+  document.getElementById('booking-no-dates-msg').style.display = 'none';
+  // Reset slot UI
+  document.getElementById('booking-slots-container').style.display = 'none';
+  document.getElementById('booking-no-slots-msg').style.display = 'none';
+  document.getElementById('booking-slots-list').innerHTML = '';
+  document.getElementById('booking-selected-slot-display').style.display = 'none';
+  const btn = document.getElementById('booking-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Select a slot to continue';
   openModal('modal-booking');
+  loadAvailableDates(teacherId);
+}
+
+async function loadAvailableDates(teacherId) {
+  const datesList = document.getElementById('booking-dates-list');
+  const datesLoading = document.getElementById('booking-dates-loading');
+  const noDatesMsg = document.getElementById('booking-no-dates-msg');
+  try {
+    const res = await API.get(`/booking/available-dates/${teacherId}`);
+    const dates = res.available_dates || [];
+    datesLoading.style.display = 'none';
+    if (!dates.length) {
+      noDatesMsg.style.display = 'block';
+      return;
+    }
+    datesList.innerHTML = dates.map(d => {
+      const dt = new Date(d + 'T00:00:00');
+      const day = dt.toLocaleDateString('en-US', { weekday: 'short' });
+      const mon = dt.toLocaleDateString('en-US', { month: 'short' });
+      const num = dt.getDate();
+      return `<button class="date-chip" onclick="selectAvailableDate('${d}', this)">`
+        + `<span class="date-chip-day">${day}</span>`
+        + `<span class="date-chip-num">${num}</span>`
+        + `<span class="date-chip-mon">${mon}</span>`
+        + `</button>`;
+    }).join('');
+  } catch (e) {
+    datesLoading.textContent = 'Failed to load available days.';
+    console.error('loadAvailableDates error:', e);
+  }
+}
+
+function selectAvailableDate(date, btn) {
+  // Highlight selected day chip
+  document.querySelectorAll('#booking-dates-list .date-chip').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  // Reset slots
+  document.getElementById('booking-slots-container').style.display = 'none';
+  document.getElementById('booking-no-slots-msg').style.display = 'none';
+  document.getElementById('booking-slots-list').innerHTML = '';
+  document.getElementById('booking-selected-slot-display').style.display = 'none';
+  document.getElementById('booking-selected-date').value = '';
+  document.getElementById('booking-selected-time').value = '';
+  document.getElementById('booking-submit-btn').disabled = true;
+  document.getElementById('booking-submit-btn').textContent = 'Select a slot to continue';
+  loadSlotsForDate(date);
+}
+
+async function loadSlotsForDate(date) {
+  if (!date) return;
+  const teacherId = document.getElementById('booking-teacher-id').value;
+  const slotsList = document.getElementById('booking-slots-list');
+  const slotsContainer = document.getElementById('booking-slots-container');
+  const noSlotsMsg = document.getElementById('booking-no-slots-msg');
+  const selectedDisplay = document.getElementById('booking-selected-slot-display');
+  const btn = document.getElementById('booking-submit-btn');
+
+  // Reset selection
+  document.getElementById('booking-selected-date').value = '';
+  document.getElementById('booking-selected-time').value = '';
+  selectedDisplay.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Select a slot to continue';
+
+  slotsList.innerHTML = '<span style="color:var(--text-muted);font-size:0.85rem">Loading slots...</span>';
+  slotsContainer.style.display = 'block';
+  noSlotsMsg.style.display = 'none';
+
+  try {
+    const res = await API.get(`/booking/slots/${teacherId}?date=${date}`);
+    const slots = res.available_slots || [];
+
+    if (!slots.length) {
+      slotsContainer.style.display = 'none';
+      noSlotsMsg.style.display = 'block';
+      return;
+    }
+
+    noSlotsMsg.style.display = 'none';
+    slotsContainer.style.display = 'block';
+
+    // Generate 30-minute time slots within each availability window
+    const bookedTimes = slots.flatMap(s => s.booked_times || []);
+    let html = '';
+
+    slots.forEach(slot => {
+      const times = generateTimeSlots(slot.start_time, slot.end_time, 30);
+      times.forEach(time => {
+        const isTaken = bookedTimes.includes(time);
+        if (isTaken) {
+          html += `<button class="slot-btn taken" disabled title="Already booked">${time} (taken)</button>`;
+        } else {
+          html += `<button class="slot-btn" onclick="selectSlot('${date}', '${time}')">${time}</button>`;
+        }
+      });
+    });
+
+    slotsList.innerHTML = html || '<span style="color:var(--text-muted);font-size:0.85rem">No slots available on this date.</span>';
+
+  } catch (e) {
+    console.error('loadSlotsForDate error:', e);
+    slotsList.innerHTML = '<span style="color:var(--coral);font-size:0.85rem">Failed to load slots. Please try again.</span>';
+  }
+}
+
+// Generate time slots at given interval (minutes) between start and end
+function generateTimeSlots(start, end, intervalMins) {
+  const times = [];
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  let cur = sh * 60 + sm;
+  const endMin = eh * 60 + em;
+  while (cur < endMin) {
+    const h = String(Math.floor(cur / 60)).padStart(2, '0');
+    const m = String(cur % 60).padStart(2, '0');
+    times.push(`${h}:${m}`);
+    cur += intervalMins;
+  }
+  return times;
+}
+
+function selectSlot(date, time) {
+  // Deselect all
+  document.querySelectorAll('#booking-slots-list .slot-btn').forEach(b => b.classList.remove('selected'));
+  // Select clicked
+  event.target.classList.add('selected');
+
+  document.getElementById('booking-selected-date').value = date;
+  document.getElementById('booking-selected-time').value = time;
+
+  const label = document.getElementById('booking-slot-label');
+  label.textContent = `${date} at ${time}`;
+  document.getElementById('booking-selected-slot-display').style.display = 'block';
+
+  const btn = document.getElementById('booking-submit-btn');
+  btn.disabled = false;
+  btn.textContent = 'Send Booking Request';
 }
 
 async function createBooking() {
+  const skillId = parseInt(document.getElementById('booking-skill-id').value);
+  const date = document.getElementById('booking-selected-date').value;
+  const time = document.getElementById('booking-selected-time').value;
+
+  if (!date || !time) { toast('Please select an available slot first', 'warning'); return; }
+  if (!skillId || isNaN(skillId)) { toast('Skill not selected properly — please try again', 'error'); return; }
+
   const data = {
-    skill_id: parseInt(document.getElementById('booking-skill-id').value),
-    teacher_id: parseInt(document.getElementById('booking-teacher-id').value),
-    scheduled_time: document.getElementById('booking-time').value,
-    message: document.getElementById('booking-message').value
+    skill_id: skillId,
+    scheduled_time: `${date}T${time}`,
+    message: document.getElementById('booking-message') ? document.getElementById('booking-message').value : ''
   };
-  if (!data.scheduled_time) { toast('Please select a time', 'warning'); return; }
-  const res = await API.post('/booking/create', data);
-  if (res.id || res.message?.toLowerCase().includes('created')) {
-    closeModal('modal-booking');
-    toast('Booking request sent! 🎉', 'success');
-    navigate('bookings');
-  } else {
-    toast(res.message || 'Booking failed', 'error');
+
+  const btn = document.getElementById('booking-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  try {
+    const res = await API.post('/booking/create', data);
+    if (res.id || res.message?.toLowerCase().includes('created')) {
+      closeModal('modal-booking');
+      toast('Booking request sent!', 'success');
+      navigate('bookings');
+    } else {
+      toast(res.message || 'Booking failed', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Send Booking Request';
+    }
+  } catch (e) {
+    console.error('createBooking error:', e);
+    toast('Network error — could not reach server', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Send Booking Request';
   }
 }
 
@@ -504,7 +692,7 @@ function renderAvailability(slots) {
   el.innerHTML = `<div class="flex-row" style="flex-wrap:wrap; gap:10px;">` +
     slots.map(s => `
       <div class="slot-pill">
-        🕐 ${s.day_of_week} ${s.start_time}–${s.end_time}
+        🕐 ${s.date} ${s.start_time}–${s.end_time}
         <button onclick="deleteSlot(${s.id})" style="background:none;border:none;cursor:pointer;color:var(--coral);padding:0;font-size:0.9rem;margin-left:4px">✕</button>
       </div>
     `).join('') + `</div>`;
@@ -512,17 +700,35 @@ function renderAvailability(slots) {
 
 async function addSlot() {
   const data = {
-    day_of_week: document.getElementById('slot-day').value,
+    date: document.getElementById('slot-day').value,
     start_time: document.getElementById('slot-start').value,
     end_time: document.getElementById('slot-end').value
   };
-  if (!data.day_of_week || !data.start_time || !data.end_time) {
-    toast('Fill all fields', 'warning'); return;
+
+  if (!data.date || !data.start_time || !data.end_time) {
+    toast('Fill all fields', 'warning');
+    return;
   }
-  await API.post('/availability/add', data);
-  toast('Slot added!', 'success');
-  loadAvailability();
-  document.getElementById('slot-form').reset();
+
+  const res = await API.post('/availability/add', data);
+
+  if (
+    res.message &&
+    res.message.toLowerCase().includes('success')
+  ) {
+    toast('Slot added!', 'success');
+
+    document.getElementById('slot-form').reset();
+
+    await loadAvailability();
+
+  } else {
+
+    toast(
+      res.message || 'Failed to add slot',
+      'error'
+    );
+  }
 }
 
 async function deleteSlot(id) {
