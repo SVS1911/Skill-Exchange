@@ -17,6 +17,8 @@ def add_skill():
     tags:
       - Skills
 
+    summary: Add a new skill
+
     security:
       - Bearer: []
 
@@ -25,26 +27,34 @@ def add_skill():
         name: body
         required: true
         schema:
+          type: object
+          required:
+            - skill_name
+            - description
+            - category
+
           properties:
-            title:
+            skill_name:
               type: string
-              example: Photography
-            category:
-              type: string
-              example: Art
+              example: Python Programming
+
             description:
               type: string
-              example: DSLR Basics
-            experience_level:
+              example: I can teach Python basics and Flask.
+
+            category:
               type: string
-              example: Intermediate
-            exchange_points:
-              type: integer
-              example: 20
+              example: Programming
 
     responses:
       201:
-        description: Skill added successfully
+        description: Skill created successfully
+
+      400:
+        description: Invalid skill data
+
+      401:
+        description: Unauthorized - Missing or invalid JWT token
     """
     user_id = get_jwt_identity()
 
@@ -65,9 +75,38 @@ def get_skills():
     tags:
       - Skills
 
+    summary: Fetch all available skills
+
     responses:
       200:
-        description: List of skills
+        description: Skills fetched successfully
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                example: 1
+
+              skill_name:
+                type: string
+                example: Python Programming
+
+              description:
+                type: string
+                example: Learn Python basics.
+
+              category:
+                type: string
+                example: Programming
+
+              user_id:
+                type: integer
+                example: 5
+
+      404:
+        description: No skills found
     """
     try:
         verify_jwt_in_request(optional=True)
@@ -87,12 +126,37 @@ def my_skills():
     tags:
       - Skills
 
+    summary: Get logged-in user's skills
+
     security:
       - Bearer: []
 
     responses:
       200:
-        description: User skills
+        description: User skills fetched successfully
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                example: 1
+
+              skill_name:
+                type: string
+                example: Python Programming
+
+              description:
+                type: string
+                example: I teach Flask and APIs.
+
+              category:
+                type: string
+                example: Programming
+
+      401:
+        description: Unauthorized - Missing or invalid JWT token
     """
     user_id = get_jwt_identity()
 
@@ -104,7 +168,56 @@ def my_skills():
 @skill_bp.route("/update/<int:skill_id>", methods=["PUT"])
 @jwt_required()
 def edit_skill(skill_id):
+    """
+    Update Skill
+    ---
+    tags:
+      - Skills
 
+    summary: Update an existing skill
+
+    security:
+      - Bearer: []
+
+    parameters:
+      - name: skill_id
+        in: path
+        type: integer
+        required: true
+        description: Skill ID to update
+        example: 1
+
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            skill_name:
+              type: string
+              example: Advanced Python
+
+            description:
+              type: string
+              example: Covers Flask, APIs and SQLAlchemy.
+
+            category:
+              type: string
+              example: Programming
+
+    responses:
+      200:
+        description: Skill updated successfully
+
+      401:
+        description: Unauthorized - Missing or invalid JWT token
+
+      403:
+        description: You are not allowed to update this skill
+
+      404:
+        description: Skill not found
+    """
     user_id = get_jwt_identity()
 
     data = request.json
@@ -119,7 +232,38 @@ def edit_skill(skill_id):
 @skill_bp.route("/delete/<int:skill_id>", methods=["DELETE"])
 @jwt_required()
 def remove_skill(skill_id):
+    """
+    Delete Skill
+    ---
+    tags:
+      - Skills
 
+    summary: Delete a skill
+
+    security:
+      - Bearer: []
+
+    parameters:
+      - name: skill_id
+        in: path
+        type: integer
+        required: true
+        description: Skill ID to delete
+        example: 1
+
+    responses:
+      200:
+        description: Skill deleted successfully
+
+      401:
+        description: Unauthorized - Missing or invalid JWT token
+
+      403:
+        description: You are not allowed to delete this skill
+
+      404:
+        description: Skill not found
+    """
     user_id = get_jwt_identity()
 
     return delete_skill(
