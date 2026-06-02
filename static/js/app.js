@@ -197,6 +197,25 @@ async function loadDashboard() {
     document.getElementById('dash-greeting').textContent = `Good day, ${u.name.split(' ')[0]} 👋`;
     document.getElementById('dash-points').textContent = u.points;
     document.getElementById('dash-role').textContent = u.role;
+
+    // Show low-points nudge if balance is under 20
+    const nudgeId = 'low-points-nudge';
+    let nudge = document.getElementById(nudgeId);
+    if (u.points < 20) {
+      if (!nudge) {
+        nudge = document.createElement('div');
+        nudge.id = nudgeId;
+        nudge.style.cssText = 'background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.35);border-radius:10px;padding:0.75rem 1rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:0.75rem;font-size:0.88rem;';
+        nudge.innerHTML = `<span>⚠️ Low points balance (<strong>${u.points} pts</strong>). Top up to keep booking sessions!</span>
+          <button class="btn-buy-points" onclick="openBuyPointsModal()" style="white-space:nowrap;flex-shrink:0">⚡ Buy Points</button>`;
+        const statsGrid = document.querySelector('#page-dashboard .stats-grid');
+        if (statsGrid) statsGrid.parentNode.insertBefore(nudge, statsGrid);
+      } else {
+        nudge.querySelector('strong').textContent = u.points + ' pts';
+      }
+    } else if (nudge) {
+      nudge.remove();
+    }
   }
 
   try {
@@ -483,9 +502,30 @@ function statusIcon(s) {
 }
 
 async function updateBookingStatus(id, action) {
-  await API.patch(`/booking/${action}/${id}`);
-  toast(`Booking ${action}ed!`, 'success');
+  const res = await API.patch(`/booking/${action}/${id}`);
+  if (res && res.message) {
+    const msg = res.message.toLowerCase();
+    if (msg.includes('insufficient') || msg.includes('not enough') || msg.includes('points')) {
+      toast(`⚠️ ${res.message}`, 'error');
+      // Offer to buy points if it's a points issue
+      if (msg.includes('insufficient') || msg.includes('points')) {
+        setTimeout(() => {
+          if (confirm('The learner has insufficient points. Would you like to inform them to top up? (You can share the buy points option)')) {
+            toast('💡 Learners can buy points from their Dashboard or Profile page.', 'info');
+          }
+        }, 400);
+      }
+    } else if (msg.includes('success')) {
+      toast(`Booking ${action}ed!`, 'success');
+    } else {
+      toast(res.message, 'error');
+    }
+  } else {
+    toast(`Booking ${action}ed!`, 'success');
+  }
   loadBookings();
+  // Refresh user points in case they changed
+  await loadUser();
 }
 
 async function cancelBooking(id) {
@@ -1147,6 +1187,120 @@ function formatTime(ts) {
 
 function openChatModal(bookingId) {
   openChat(bookingId, `Booking #${bookingId}`);
+}
+
+/* ══════════════════════════════════════
+   BUY POINTS
+══════════════════════════════════════ */
+
+const POINTS_PACKAGES = [
+  { id: 'starter',   points: 50,   price: 79,   label: 'Starter Pack',   emoji: '🌱', color: '#4ade80' },
+  { id: 'popular',   points: 150,  price: 199,  label: 'Popular Pack',   emoji: '⚡', color: '#f59e0b', badge: 'BEST VALUE' },
+  { id: 'pro',       points: 400,  price: 399,  label: 'Pro Pack',       emoji: '🚀', color: '#818cf8' },
+  { id: 'unlimited', points: 1000, price: 799,  label: 'Unlimited Pack', emoji: '💎', color: '#f472b6' },
+];
+
+function openBuyPointsModal() {
+  const existing = document.getElementById('buy-points-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'buy-points-modal';
+  modal.className = 'modal-overlay open';
+  modal.innerHTML = `
+    <div class="modal-box buy-points-modal-box">
+      <div class="modal-header">
+        <h2 class="modal-title">⚡ Buy Points</h2>
+        <button class="modal-close" onclick="closeBuyPointsModal()">✕</button>
+      </div>
+      <p class="buy-points-subtitle">Top up your balance to keep learning. Points are used to book skill sessions.</p>
+      <div class="buy-points-balance">
+        Current Balance: <strong id="buy-modal-balance">${state.user?.points ?? 0} pts</strong>
+      </div>
+      <div class="buy-points-grid">
+        ${POINTS_PACKAGES.map(pkg => `
+          <div class="buy-points-card ${pkg.badge ? 'featured' : ''}" data-pkg-id="${pkg.id}">
+            ${pkg.badge ? `<div class="pkg-badge">${pkg.badge}</div>` : ''}
+            <div class="pkg-emoji">${pkg.emoji}</div>
+            <div class="pkg-label">${pkg.label}</div>
+            <div class="pkg-points" style="color:${pkg.color}">+${pkg.points} pts</div>
+            <div class="pkg-price">₹${pkg.price}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div id="buy-points-selected" class="buy-points-selected" style="display:none">
+        <span id="buy-points-selected-text"></span>
+      </div>
+      <div class="buy-points-note">🔒 Demo mode — no real payment. Points are added instantly.</div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeBuyPointsModal()">Cancel</button>
+        <button class="btn btn-primary" id="confirm-buy-btn" onclick="confirmBuyPoints()" disabled>
+          Confirm Purchase
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => {
+    if (e.target === modal) { closeBuyPointsModal(); return; }
+    const card = e.target.closest('.buy-points-card');
+    if (card) selectPackage(card.dataset.pkgId, card);
+  });
+}
+
+let selectedPackageId = null;
+
+function selectPackage(pkgId, cardEl) {
+  selectedPackageId = pkgId;
+  document.querySelectorAll('.buy-points-card').forEach(c => c.classList.remove('selected'));
+  cardEl.classList.add('selected');
+
+  const pkg = POINTS_PACKAGES.find(p => p.id === pkgId);
+  const selDiv = document.getElementById('buy-points-selected');
+  const selText = document.getElementById('buy-points-selected-text');
+  selText.textContent = `${pkg.emoji} ${pkg.label}: +${pkg.points} pts for ₹${pkg.price}`;
+  selDiv.style.display = 'block';
+  document.getElementById('confirm-buy-btn').disabled = false;
+}
+
+function closeBuyPointsModal() {
+  const modal = document.getElementById('buy-points-modal');
+  if (modal) modal.remove();
+  selectedPackageId = null;
+}
+
+async function confirmBuyPoints() {
+  if (!selectedPackageId) return;
+
+  const btn = document.getElementById('confirm-buy-btn');
+  btn.disabled = true;
+  btn.textContent = 'Processing...';
+
+  try {
+    const res = await API.post('/user/points/buy', { package_id: selectedPackageId });
+    if (res.new_balance !== undefined) {
+      state.user.points = res.new_balance;
+      updateHeaderUser();
+
+      // Update points wherever displayed
+      const dashPts = document.getElementById('dash-points');
+      if (dashPts) dashPts.textContent = res.new_balance;
+      const profPts = document.getElementById('profile-points');
+      if (profPts) profPts.textContent = res.new_balance;
+
+      closeBuyPointsModal();
+      toast(`🎉 ${res.message}`, 'success');
+    } else {
+      toast(res.message || 'Purchase failed', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Confirm Purchase';
+    }
+  } catch(e) {
+    toast('Network error. Please try again.', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Confirm Purchase';
+  }
 }
 
 /* ══════════════════════════════════════
