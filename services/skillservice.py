@@ -6,8 +6,16 @@ def create_skill(user_id, data):
     if not data.get("title") or not data.get("category") or not data.get("experience_level"):
         return {"message": "title, category and experience_level are required"}, 400
 
+    # ---------- DUPLICATE CHECK ---------- #
+    existing = Skill.query.filter(
+        Skill.user_id == user_id,
+        db.func.lower(Skill.title) == data["title"].strip().lower()
+    ).first()
+    if existing:
+        return {"message": "You already have a skill with this title"}, 400
+
     skill = Skill(
-        title=data["title"],
+        title=data["title"].strip(),
         category=data["category"],
         description=data.get("description"),
         experience_level=data["experience_level"],
@@ -37,8 +45,11 @@ def _skill_to_dict(skill, include_owner=True):
     return d
 
 
-def get_all_skills():
-    skills = Skill.query.all()
+def get_all_skills(exclude_user_id=None):
+    query = Skill.query
+    if exclude_user_id:
+        query = query.filter(Skill.user_id != exclude_user_id)
+    skills = query.all()
     return [_skill_to_dict(s) for s in skills], 200
 
 

@@ -5,6 +5,7 @@ from services.bookingservice import (
     create_booking,
     get_my_bookings,
     update_booking_status,
+    cancel_booking,
     get_teacher_availability,
     get_teacher_available_dates
 )
@@ -149,6 +150,33 @@ def complete_booking(id):
     """
     teacher_id = get_jwt_identity()
     return update_booking_status(id, teacher_id, "completed")
+
+
+@booking_bp.route("/cancel/<int:id>", methods=["PATCH"])
+@jwt_required()
+def cancel_booking_route(id):
+    """
+    Cancel a Booking (Learner only)
+    ---
+    tags:
+      - Booking
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Booking cancelled
+      403:
+        description: Only the learner can cancel
+      404:
+        description: Booking not found
+    """
+    learner_id = get_jwt_identity()
+    return cancel_booking(id, learner_id)
 
 
 @booking_bp.route("/slots/<int:teacher_id>", methods=["GET"])

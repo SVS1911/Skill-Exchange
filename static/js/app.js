@@ -353,7 +353,7 @@ function renderMySkills(skills) {
 
 async function addSkill() {
   const data = {
-    title: document.getElementById('skill-title').value,
+    title: document.getElementById('skill-title').value.trim(),
     category: document.getElementById('skill-category').value,
     description: document.getElementById('skill-desc').value,
     experience_level: document.getElementById('skill-level').value,
@@ -362,14 +362,20 @@ async function addSkill() {
   if (!data.title || !data.category || !data.experience_level) {
     toast('Please fill all required fields', 'warning'); return;
   }
-  const res = await API.post('/skill/create', data);
-  if (res.id || res.title) {
-    closeModal('modal-add-skill');
-    toast('Skill added! 🎉', 'success');
-    loadMySkills();
-    document.getElementById('add-skill-form').reset();
-  } else {
-    toast(res.message || 'Failed to add skill', 'error');
+  const btn = document.querySelector('#modal-add-skill .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Adding…'; }
+  try {
+    const res = await API.post('/skill/create', data);
+    if (res.id || res.message?.toLowerCase().includes('successfully')) {
+      closeModal('modal-add-skill');
+      toast('Skill added! 🎉', 'success');
+      loadMySkills();
+      document.getElementById('add-skill-form').reset();
+    } else {
+      toast(res.message || 'Failed to add skill', 'error');
+    }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Add Skill'; }
   }
 }
 
@@ -425,40 +431,56 @@ function renderBookings(bookings) {
     el.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-title">No bookings yet</div><div class="empty-state-desc">Browse the marketplace to book a skill session.</div></div></td></tr>`;
     return;
   }
-  el.innerHTML = bookings.map(b => `
+  el.innerHTML = bookings.map(b => {
+    const isTeacher = b.role === 'teacher';
+    const withName = isTeacher ? (b.learner_name || 'N/A') : (b.teacher_name || 'N/A');
+    let actions = '';
+    if (b.status === 'pending') {
+      if (isTeacher) {
+        actions = `
+          <button class="btn btn-primary btn-sm" onclick="updateBookingStatus(${b.id},'accept')">✓ Accept</button>
+          <button class="btn btn-danger btn-sm" onclick="updateBookingStatus(${b.id},'reject')">✕ Reject</button>`;
+      } else {
+        actions = `<button class="btn btn-danger btn-sm" onclick="cancelBooking(${b.id})">✕ Cancel Request</button>`;
+      }
+    } else if (b.status === 'accepted') {
+      actions = `
+        ${isTeacher ? `<button class="btn btn-amber btn-sm" onclick="updateBookingStatus(${b.id},'complete')">✔ Complete</button>` : ''}
+        <button class="btn btn-secondary btn-sm" onclick="openChatModal(${b.id})">💬 Chat</button>`;
+    } else if (b.status === 'completed' && !isTeacher) {
+      actions = `<button class="btn btn-ghost btn-sm" onclick="openReviewModal(${b.id}, ${b.teacher_id})">⭐ Review</button>`;
+    }
+    return `
     <tr>
       <td><span class="font-display fw-bold">#${b.id}</span></td>
       <td>${b.skill_title || 'N/A'}</td>
-      <td>${b.learner_name || b.teacher_name || 'N/A'}</td>
+      <td>${withName}</td>
       <td>${b.scheduled_time || '—'}</td>
       <td><span class="status-badge status-${b.status}">${statusIcon(b.status)} ${b.status}</span></td>
-      <td>
-        <div class="flex-row" style="gap:6px">
-          ${b.status === 'pending' ? `
-            <button class="btn btn-primary btn-sm" onclick="updateBookingStatus(${b.id},'accept')">✓ Accept</button>
-            <button class="btn btn-danger btn-sm" onclick="updateBookingStatus(${b.id},'reject')">✕ Reject</button>
-          ` : ''}
-          ${b.status === 'accepted' ? `
-            <button class="btn btn-amber btn-sm" onclick="updateBookingStatus(${b.id},'complete')">✔ Complete</button>
-            <button class="btn btn-secondary btn-sm" onclick="openChatModal(${b.id})">💬 Chat</button>
-          ` : ''}
-          ${b.status === 'completed' ? `
-            <button class="btn btn-ghost btn-sm" onclick="openReviewModal(${b.id}, ${b.teacher_id})">⭐ Review</button>
-          ` : ''}
-        </div>
-      </td>
-    </tr>
-  `).join('');
+      <td><div class="flex-row" style="gap:6px">${actions}</div></td>
+    </tr>`;
+  }).join('');
 }
 
 function statusIcon(s) {
-  return { pending: '⏳', accepted: '✅', rejected: '❌', completed: '🏆' }[s] || '•';
+  return { pending: '⏳', accepted: '✅', rejected: '❌', completed: '🏆', cancelled: '🚫' }[s] || '•';
 }
 
 async function updateBookingStatus(id, action) {
   await API.patch(`/booking/${action}/${id}`);
   toast(`Booking ${action}ed!`, 'success');
   loadBookings();
+}
+
+async function cancelBooking(id) {
+  if (!confirm('Cancel this booking request?')) return;
+  try {
+    await API.patch(`/booking/cancel/${id}`);
+    toast('Booking cancelled', 'success');
+    loadBookings();
+  } catch(e) {
+    toast('Failed to cancel booking', 'error');
+  }
 }
 
 // Safe entry point - reads from registry, never from raw onclick strings

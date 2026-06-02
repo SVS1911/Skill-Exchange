@@ -7,6 +7,8 @@ def send_message(
     sender_id,
     data
 ):
+    # JWT identity is stored as string, cast to int for DB comparison
+    sender_id = int(sender_id)
 
     booking = Booking.query.get(
         data["booking_id"]
@@ -36,13 +38,14 @@ def send_message(
         else booking.learner_id
     )
 
+    # Frontend sends 'content', support both field names
+    message_text = data.get("message_text") or data.get("content", "")
+
     message = Message(
         booking_id=data["booking_id"],
         sender_id=sender_id,
         receiver_id=receiver_id,
-        message_text=data[
-            "message_text"
-        ]
+        message_text=message_text
     )
 
     db.session.add(message)
@@ -58,6 +61,8 @@ def get_chat(
     booking_id,
     user_id
 ):
+    # JWT identity is stored as string, cast to int for DB comparison
+    user_id = int(user_id)
 
     booking = Booking.query.get(
         booking_id
@@ -96,11 +101,12 @@ def get_chat(
             "receiver_id":
             msg.receiver_id,
 
-            "message":
+            # Frontend reads 'content' and 'timestamp'
+            "content":
             msg.message_text,
 
-            "time":
-            msg.created_at
+            "timestamp":
+            msg.created_at.isoformat() if msg.created_at else None
         })
 
     return result, 200

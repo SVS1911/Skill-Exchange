@@ -74,6 +74,8 @@ def create_booking(learner_id, data):
 
 
 def get_my_bookings(user_id):
+    # JWT identity is a string; cast to int for DB comparisons
+    user_id = int(user_id)
 
     bookings = Booking.query.filter(
         (Booking.learner_id == user_id) | (Booking.teacher_id == user_id)
@@ -137,6 +139,18 @@ def update_booking_status(booking_id, teacher_id, new_status):
     booking.status = new_status
     db.session.commit()
     return {"message": f"Booking {new_status} successfully"}, 200
+
+
+def cancel_booking(booking_id, learner_id):
+    learner_id = int(learner_id)
+    booking = Booking.query.filter_by(id=booking_id, learner_id=learner_id).first()
+    if not booking:
+        return {"message": "Booking not found or you are not the learner"}, 404
+    if booking.status != "pending":
+        return {"message": f"Cannot cancel a booking that is already '{booking.status}'"}, 400
+    booking.status = "cancelled"
+    db.session.commit()
+    return {"message": "Booking cancelled successfully"}, 200
 
 
 def get_teacher_availability(teacher_id, date):
