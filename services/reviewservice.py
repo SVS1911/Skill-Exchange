@@ -42,9 +42,7 @@ def add_review(
         learner_id=learner_id,
         teacher_id=booking.teacher_id,
         rating=data["rating"],
-        review_text=data.get(
-            "review_text"
-        )
+        review_text=data.get("review_text") or data.get("comment")
     )
     
     if (

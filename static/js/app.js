@@ -1023,7 +1023,7 @@ function renderReviews(reviews) {
           ${[1,2,3,4,5].map(i => `<span class="star ${i <= (r.rating||0) ? '' : 'empty'}">★</span>`).join('')}
         </div>
       </div>
-      <div class="review-text">${r.comment || 'Great session!'}</div>
+      <div class="review-text">${r.review || 'Great session!'}</div>
     </div>
   `).join('');
 }
@@ -1039,7 +1039,7 @@ async function submitReview() {
     booking_id: parseInt(document.getElementById('review-booking-id').value),
     teacher_id: parseInt(document.getElementById('review-teacher-id').value),
     rating: parseInt(document.getElementById('review-rating').value),
-    comment: document.getElementById('review-comment').value
+    review_text: document.getElementById('review-comment').value
   };
   if (!data.rating) { toast('Please select a rating', 'warning'); return; }
   await API.post('/review/add', data);
@@ -1181,7 +1181,13 @@ function proceedToBooking() {
 /* ── UTILS ── */
 function formatTime(ts) {
   if (!ts) return '';
-  try { return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+  try {
+    return new Date(ts).toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Kolkata'
+    });
+  }
   catch(e) { return ts; }
 }
 

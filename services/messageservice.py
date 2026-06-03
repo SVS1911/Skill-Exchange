@@ -106,7 +106,7 @@ def get_chat(
             msg.message_text,
 
             "timestamp":
-            msg.created_at.isoformat() if msg.created_at else None
+            (msg.created_at.isoformat() + "+00:00") if msg.created_at else None
         })
 
     return result, 200
